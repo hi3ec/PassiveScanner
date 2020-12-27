@@ -1,2 +1,2 @@
-# mongodb
-passive scanner and save to mongodb
+# Passive Scanner
+passive scanner and save to database
