@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 import subprocess
 import sys
 import re
@@ -12,17 +11,27 @@ from networking.ipv4 import IPv4
 from networking.pcap import Pcap
 from pymongo import MongoClient
 
-
-
-
 def main():
-    client = MongoClient('mongodb://localhost:27017/')
-    scannerdb = client['scanner']
-    passivecol = scannerdb["passive_scanner"]
+    database_list = ['Mongodb', 'PostgreSQL']
+    for index in range(len(database_list)):
+        print (index, ':', database_list[index])
+    db = int(input('enter database number '))
+    database = database_list[db]
+    print('database selected is:', database)
+
+    if database == 'Mongodb':
+        client = MongoClient('mongodb://localhost:27017/')
+        scannerdb = client['scanner']
+        passivecol = scannerdb["passive_scanner"]
+        passive_scan(passivecol)
+
+    elif database == 'PostgreSQL':
+        print('hi')
+    
+    
 
     #ethinterface()
-    passive_scan(passivecol)
-
+    
 def ethinterface():
     """
     Uses the python library netifaces to enumerate a list of the interfaces
