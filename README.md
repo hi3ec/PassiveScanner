@@ -60,10 +60,6 @@ MongoDB is a free and open-source cross-platform document-oriented database prog
 
 ## How to use this image
 
-```
-docker run --rm -it --name mongodb -v ~/w/docker-db/datadir:/data/db -p 27017:27017 mongo
-```
-
 
 ### Run mongodb with docker
 ```
@@ -73,7 +69,7 @@ docker run --rm -it --name mongodb -v ~/w/docker-db/datadir:/data/db -p 27017:27
 
 
 
-### Run postgresql with docker
+### Run postgresql with docker(not work)
 ```
 docker run --rm -it --name postgres -p 5432:5432 -v ~/w/docker-db/datadir:/var/lib/postgresql/data -e POSTGRES_PASSWORD=postgres -d postgres
 ```
