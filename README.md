@@ -6,7 +6,7 @@ passive scanner and save to database
 
 ### Run mongodb with docker
 ```
-docker run --rm -it --name mongodb -p 27017:27017 mongo
+docker run --rm -it --name mongodb -v ~/w/docker-db/datadir:/data/db -p 27017:27017 mongo
 ```
 
 
