@@ -1,3 +1,4 @@
+#db.passive_scanner.aggregate( [{  "$match" : {"MAC Vendor": "10BF48"} }])
 #! /usr/bin/env python
 import subprocess
 import sys
@@ -21,14 +22,15 @@ import struct
 def main():
     db = selectdatabase()
     inf = ethinterface()
+   #mac_vendor_db(db)
     event = Event()
     while True:
         event.clear()
         with ThreadPoolExecutor(max_workers=2) as executor:           
             executor.submit(passive_scan, event, db, inf)
-            executor.submit(mac_vendor_db, db)
+            #executor.submit(mac_vendor_db, db)
             #executor.submit(change_html, event, webcol)
-            time.sleep(10)
+            time.sleep(3600)
             event.set()
    
 def selectdatabase():
@@ -78,6 +80,7 @@ def mac_vendor_db(db):
 def passive_scan(event, db, inf):
     #db.drop_collection("passive_scanner")
     passivecol = db["passive_scanner"]
+    maccol = db["mac_vendor"]
     start = time.time()
     pcap = Pcap(f'pcap/{start}.pcap')
     conn = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(3))
@@ -131,7 +134,9 @@ def passive_scan(event, db, inf):
                         tsec = time.time()
                         mac = eth.src_mac
                         mac_strip = mac.replace(":", "").replace("-", "").replace(".","").upper().strip()[:6]
-                        index = {"IP Address": ipv4.src,'MAC Address': eth.src_mac,'MAC Vendor': mac_strip, 'OS': OS, "day":day}
+                        #print(maccol.find_one({'mac3B':mac_strip}))
+                        mac_vendor = maccol.distinct('mac_vendor', {'mac3B':mac_strip})[0]
+                        index = {"IP Address": ipv4.src,'MAC Address': eth.src_mac,'MAC Vendor': mac_vendor, 'OS': OS, "day":day}
                         data = { "Time": tsec}
                         passivecol.update_one(index, 
                         {
