@@ -7,6 +7,7 @@ import netifaces
 import socket
 import time
 import pyshark
+import pandas as pd
 from datetime import date
 from IPy import IP
 from networking.ethernet import Ethernet
@@ -23,13 +24,14 @@ import struct
 def main():
     db = selectdatabase()
     inf = ethinterface()
-    mac_vendor_db(db)
+    #mac_vendor_db(db)
     event = Event()
     while True:
         event.clear()
         with ThreadPoolExecutor(max_workers=2) as executor:           
             #executor.submit(sniffing, event, inf)
             executor.submit(passive_scan, event, db, inf)
+            executor.submit(mongo2csv, event, db)
             #executor.submit(mac_vendor_db, db)
             #executor.submit(change_html, event, webcol)
             time.sleep(3600)
@@ -42,11 +44,22 @@ def selectdatabase():
     db = int(input('enter database number '))
     database = database_list[db]
     print('database selected is:', database)
-
+    host = 'localhost'
+    port =  27017
+    username = None
+    password = None
+    db = 'scanner'
     if database == 'Mongodb':
-        client = MongoClient('mongodb://127.0.0.1:27017/')
-        scannerdb = client['scanner']
-        return scannerdb
+        if username and password:
+            mongo_uri = 'mongodb://%s:%s@%s:%s/%s' % (username, password, host, port, db)
+            conn = MongoClient(mongo_uri)
+        else:
+            conn = MongoClient(host, port)
+        return conn[db]
+        
+        #client = MongoClient('mongodb://127.0.0.1:27017/')
+        #scannerdb = client['scanner']
+        #return scannerdb
 
     elif database == 'PostgreSQL':
         print('hi')
@@ -80,6 +93,25 @@ def mac_vendor_db(db):
         nvalue = {'$set': {'mac_vendor':line.strip()[7:]}}
         maccol.update_one(mquery,nvalue, upsert = True)  
     print('Update mac vendor database finished')
+
+def mongo2csv(event, db):
+    query={}
+    no_id=True
+
+    # Make a query to the specific DB and Collection
+    cursor = db["passive_scanner"].find(query)
+
+    # Expand the cursor and construct the DataFrame
+    df =  pd.DataFrame(list(cursor))
+
+    # Delete the _id
+    if no_id and '_id' in df:
+        del df['_id']
+
+    #return df
+    df.to_csv('1.csv', index=False)
+    print('python mongo to csv use pandas.')
+
 
 def sniffing(event, inf):
     while not event.is_set():
