@@ -6,6 +6,7 @@ import re
 import netifaces
 import socket
 import time
+import pyshark
 from datetime import date
 from IPy import IP
 from networking.ethernet import Ethernet
@@ -22,11 +23,12 @@ import struct
 def main():
     db = selectdatabase()
     inf = ethinterface()
-   #mac_vendor_db(db)
+    mac_vendor_db(db)
     event = Event()
     while True:
         event.clear()
         with ThreadPoolExecutor(max_workers=2) as executor:           
+            #executor.submit(sniffing, event, inf)
             executor.submit(passive_scan, event, db, inf)
             #executor.submit(mac_vendor_db, db)
             #executor.submit(change_html, event, webcol)
@@ -42,7 +44,7 @@ def selectdatabase():
     print('database selected is:', database)
 
     if database == 'Mongodb':
-        client = MongoClient('mongodb://localhost:27017/')
+        client = MongoClient('mongodb://127.0.0.1:27017/')
         scannerdb = client['scanner']
         return scannerdb
 
@@ -74,12 +76,28 @@ def mac_vendor_db(db):
     macfile = 'mac-vendor.txt'
     file1 = open(macfile, 'r').readlines()
     for line in file1:
-        maccol.update_one({'mac3B':line.strip()[:6]},{'$set': {'mac_vendor':line.strip()[7:]}})  
+        mquery = {'mac3B':line.strip()[:6]}
+        nvalue = {'$set': {'mac_vendor':line.strip()[7:]}}
+        maccol.update_one(mquery,nvalue, upsert = True)  
     print('Update mac vendor database finished')
 
+def sniffing(event, inf):
+    while not event.is_set():
+        start = time.time()
+        capture = pyshark.LiveCapture(interface=inf, output_file=f'pcap/{start}.pcap')
+        capture.sniff_continuously()
+        for packet in capture:
+            srcmac = packet.eth.src
+            dstmac = packet.eth.dst
+            srcadd = packet.ip.src
+            dstadd = packet.ip.dst
+            #print(srcmac, dstmac, srcadd, dstadd)
+            print(packet)
+       
 def passive_scan(event, db, inf):
     #db.drop_collection("passive_scanner")
     passivecol = db["passive_scanner"]
+    #lastipcol = db["last_ip"]
     maccol = db["mac_vendor"]
     start = time.time()
     pcap = Pcap(f'pcap/{start}.pcap')
@@ -136,9 +154,10 @@ def passive_scan(event, db, inf):
                         mac_strip = mac.replace(":", "").replace("-", "").replace(".","").upper().strip()[:6]
                         #print(maccol.find_one({'mac3B':mac_strip}))
                         mac_vendor = maccol.distinct('mac_vendor', {'mac3B':mac_strip})[0]
-                        index = {"IP Address": ipv4.src,'MAC Address': eth.src_mac,'MAC Vendor': mac_vendor, 'OS': OS, "day":day}
+                        que = {"IP Address": ipv4.src,'MAC Address': eth.src_mac,'MAC Vendor': mac_vendor, 'OS': OS, "day":day}
+                        print(que)
                         data = { "Time": tsec}
-                        passivecol.update_one(index, 
+                        passivecol.update_one(que, 
                         {
                             '$push': { "Data" : data },
                             '$min': { "First": data.get('Time')},
