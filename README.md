@@ -11,6 +11,9 @@ sudo systemctl start grafana-server
 <img src="src/img/grafana.png" alt="garafana dashboard" style="width: 500px;"/>
 
 
+```
+db.passive_scanner.aggregate([])
+```
 
 
 
